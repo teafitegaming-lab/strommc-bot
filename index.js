@@ -1,46 +1,66 @@
-import {
+require("dotenv").config();
+const {
   Client,
   GatewayIntentBits,
-  Events,
-  EmbedBuilder,
   REST,
   Routes,
-  SlashCommandBuilder
-} from "discord.js";
-import dotenv from "dotenv";
-dotenv.config();
+  SlashCommandBuilder,
+  PermissionFlagsBits,
+  EmbedBuilder
+} = require("discord.js");
 
-/* ===============================
-   CLIENT
-================================= */
 const client = new Client({
   intents: [GatewayIntentBits.Guilds]
 });
 
-/* ===============================
-   SLASH COMMANDS (REGISTER LIKE INFOBOARD)
-================================= */
+/* =========================
+   SLASH COMMANDS
+========================= */
 const commands = [
+  // /infoboard
   new SlashCommandBuilder()
     .setName("infoboard")
-    .setDescription("Show StromMC information board"),
+    .setDescription("Show StromMC Network information"),
 
+  // /say (admin only)
   new SlashCommandBuilder()
     .setName("say")
-    .setDescription("Send a message using the bot")
+    .setDescription("Send a normal message as the bot (Admin only)")
     .addStringOption(option =>
       option
-        .setName("text")
+        .setName("message")
         .setDescription("Message to send")
         .setRequired(true)
     )
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+
+  // /sayembed (admin only)
+  new SlashCommandBuilder()
+    .setName("sayembed")
+    .setDescription("Send an embed message like Dyno (Admin only)")
+    .addStringOption(option =>
+      option
+        .setName("title")
+        .setDescription("Embed title")
+        .setRequired(true)
+    )
+    .addStringOption(option =>
+      option
+        .setName("description")
+        .setDescription("Embed description (use \\n for new lines)")
+        .setRequired(true)
+    )
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
 ].map(cmd => cmd.toJSON());
 
+/* =========================
+   REGISTER COMMANDS
+========================= */
 const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
 
 (async () => {
   try {
-    console.log("🔄 Syncing slash commands...");
+    console.log("🔄 Registering slash commands...");
     await rest.put(
       Routes.applicationGuildCommands(
         process.env.CLIENT_ID,
@@ -48,68 +68,72 @@ const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
       ),
       { body: commands }
     );
-    console.log("✅ Slash commands synced");
-  } catch (err) {
-    console.error("❌ Slash command sync error:", err);
+    console.log("✅ Slash commands registered!");
+  } catch (error) {
+    console.error(error);
   }
 })();
 
-/* ===============================
+/* =========================
    BOT READY
-================================= */
-client.once(Events.ClientReady, () => {
-  console.log(`✅ Logged in as ${client.user.tag}`);
+========================= */
+client.once("ready", () => {
+  console.log(`🤖 Logged in as ${client.user.tag}`);
 });
 
-/* ===============================
-   COMMAND HANDLER
-================================= */
-client.on(Events.InteractionCreate, async interaction => {
+/* =========================
+   INTERACTIONS
+========================= */
+client.on("interactionCreate", async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
-  try {
-    /* -------- /infoboard -------- */
-    if (interaction.commandName === "infoboard") {
-      const embed = new EmbedBuilder()
-        .setTitle("📢 StromMC Information Board")
-        .setDescription(
-          "✨ **Welcome to StromMC!** ✨\n\n" +
-          "<a:fire:123456789012345678> Premium SMP Experience\n" +
-          "<a:diamond:123456789012345678> Custom Features\n" +
-          "<a:star:123456789012345678> Active Community\n\n" +
-          "🌐 **IP:** play.strommc.xyz\n" +
-          "🔌 **Port:** 25565\n\n" +
-          "🚀 Stay tuned for updates!"
-        )
-        .setColor(0xff0000)
-        .setFooter({ text: "StromMC Network" })
-        .setTimestamp();
+  /* -------- /infoboard -------- */
+  if (interaction.commandName === "infoboard") {
+    const embed = new EmbedBuilder()
+      .setColor(0x00ffff)
+      .setTitle("🌩️ StromMC Network")
+      .setDescription(
+        "**Server IP:** _Coming Soon_\n" +
+        "**Port:** _Coming Soon_\n\n" +
+        "🎮 **Available Modes**\n" +
+        "🟢 Survival\n" +
+        "⚔️ Bedwars\n" +
+        "💀 Lifesteal\n" +
+        "🕹️ Arcade\n" +
+        "🌌 Custom Realms (3+)\n\n" +
+        "🚀 High performance • Custom gameplay • Big updates coming soon!"
+      )
+      .setFooter({ text: "Official StromMC Network • StromMC" });
 
-      await interaction.reply({ embeds: [embed] });
-    }
+    await interaction.reply({ embeds: [embed] });
+  }
 
-    /* -------- /say -------- */
-    if (interaction.commandName === "say") {
-      const text = interaction.options.getString("text");
+  /* -------- /say -------- */
+  if (interaction.commandName === "say") {
+    const message = interaction.options.getString("message");
+    await interaction.channel.send(message);
+    await interaction.reply({ content: "✅ Message sent.", ephemeral: true });
+  }
 
-      await interaction.deferReply({ ephemeral: true });
-      await interaction.channel.send(text);
-      await interaction.editReply("✅ Message sent!");
-    }
+  /* -------- /sayembed -------- */
+  if (interaction.commandName === "sayembed") {
+    const title = interaction.options.getString("title");
+    const description = interaction.options
+      .getString("description")
+      .replace(/\\n/g, "\n");
 
-  } catch (error) {
-    console.error("❌ Interaction error:", error);
+    const embed = new EmbedBuilder()
+      .setColor(0xff0000)
+      .setTitle(title)
+      .setDescription(description)
+      .setFooter({ text: "Official StromMC Network" });
 
-    if (!interaction.replied) {
-      await interaction.reply({
-        content: "❌ Something went wrong.",
-        ephemeral: true
-      });
-    }
+    await interaction.channel.send({ embeds: [embed] });
+    await interaction.reply({ content: "✅ Embed sent.", ephemeral: true });
   }
 });
 
-/* ===============================
+/* =========================
    LOGIN
-================================= */
+========================= */
 client.login(process.env.TOKEN);
