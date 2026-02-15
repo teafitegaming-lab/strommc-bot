@@ -1,135 +1,78 @@
-import "dotenv/config";
+import 'dotenv/config';
 import {
   Client,
   GatewayIntentBits,
   SlashCommandBuilder,
-  EmbedBuilder,
-  PermissionFlagsBits,
   REST,
   Routes,
-  InteractionResponseFlags
-} from "discord.js";
+  EmbedBuilder
+} from 'discord.js';
 
-/* ───────────── Client ───────────── */
-
+/* ================== CLIENT ================== */
 const client = new Client({
   intents: [GatewayIntentBits.Guilds]
 });
 
-/* ───────────── Slash Commands ───────────── */
-
+/* ================== COMMAND ================== */
 const commands = [
   new SlashCommandBuilder()
-    .setName("infoboard")
-    .setDescription("Show StromMC Network information"),
-
-  new SlashCommandBuilder()
-    .setName("say")
-    .setDescription("Send a normal message as the bot (Admin only)")
+    .setName('infoboard')
+    .setDescription('Send a multiline announcement with emojis')
     .addStringOption(option =>
       option
-        .setName("message")
-        .setDescription("Message to send (multi-line supported)")
+        .setName('message')
+        .setDescription('Your announcement (supports new lines & animated emojis)')
         .setRequired(true)
     )
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
-
-  new SlashCommandBuilder()
-    .setName("sayembed")
-    .setDescription("Send an embed message (Admin only)")
-    .addStringOption(option =>
-      option
-        .setName("message")
-        .setDescription("Embed message (multi-line + animated emojis supported)")
-        .setRequired(true)
-    )
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
 ].map(cmd => cmd.toJSON());
 
-/* ───────────── Register Commands ───────────── */
-
-const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
+/* ================== REGISTER COMMAND ================== */
+const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
 (async () => {
   try {
-    console.log("🔄 Registering slash commands...");
+    console.log('🔄 Registering slash commands...');
     await rest.put(
-      Routes.applicationGuildCommands(
-        process.env.CLIENT_ID,
-        process.env.GUILD_ID
-      ),
+      Routes.applicationCommands(process.env.CLIENT_ID),
       { body: commands }
     );
-    console.log("✅ Slash commands registered!");
+    console.log('✅ Slash commands registered');
   } catch (err) {
-    console.error("❌ Command registration failed:", err);
+    console.error(err);
   }
 })();
 
-/* ───────────── Ready ───────────── */
-
-client.once("ready", () => {
+/* ================== READY ================== */
+client.once('ready', () => {
   console.log(`🤖 Logged in as ${client.user.tag}`);
 });
 
-/* ───────────── Interactions ───────────── */
-
-client.on("interactionCreate", async interaction => {
+/* ================== INTERACTION ================== */
+client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
+  if (interaction.commandName !== 'infoboard') return;
 
-  /* ── /infoboard ── */
-  if (interaction.commandName === "infoboard") {
+  try {
+    // prevents "application did not respond"
+    await interaction.deferReply({ ephemeral: true });
+
+    const text = interaction.options.getString('message');
+
     const embed = new EmbedBuilder()
-      .setColor(0x2b2d31)
-      .setTitle("🌩️ StromMC Information Board")
-      .setDescription(
-        "✨ **Welcome to StromMC!** ✨\n\n" +
-        "🔥 **Premium SMP Experience**\n" +
-        "💎 Custom Features\n" +
-        "⭐ Active Community\n\n" +
-        "🌐 **Server IP:** _Coming Soon_\n" +
-        "🔌 **Port:** _Coming Soon_\n\n" +
-        "🚀 Stay tuned for updates!"
-      )
-      .setFooter({ text: "Official StromMC Network" })
+      .setColor(0x00b0f4)
+      .setDescription(text) // preserves line breaks & emojis
+      .setFooter({ text: 'StromMC • Official Announcement' })
       .setTimestamp();
-
-    await interaction.reply({ embeds: [embed] });
-  }
-
-  /* ── /say ── */
-  if (interaction.commandName === "say") {
-    const message = interaction.options.getString("message");
-
-    // ✔ preserves line breaks exactly
-    await interaction.channel.send({ content: message });
-
-    await interaction.reply({
-      content: "✅ Message sent successfully.",
-      flags: InteractionResponseFlags.Ephemeral
-    });
-  }
-
-  /* ── /sayembed ── */
-  if (interaction.commandName === "sayembed") {
-    const message = interaction.options.getString("message");
-
-    // 🚨 DO NOT TOUCH MESSAGE → fixes line mixing & emoji issues
-    const embed = new EmbedBuilder()
-      .setColor(0x2b2d31)
-      .setDescription(message)
-      .setFooter({ text: "Official StromMC Network" })
-      .setTimestamp();
-
-    await interaction.reply({
-      content: "✅ Embed sent successfully.",
-      flags: InteractionResponseFlags.Ephemeral
-    });
 
     await interaction.channel.send({ embeds: [embed] });
+    await interaction.editReply('✅ Announcement sent successfully!');
+  } catch (error) {
+    console.error(error);
+    if (interaction.deferred) {
+      await interaction.editReply('❌ Failed to send announcement.');
+    }
   }
 });
 
-/* ───────────── Login ───────────── */
-
+/* ================== LOGIN ================== */
 client.login(process.env.TOKEN);
