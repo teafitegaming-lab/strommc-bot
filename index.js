@@ -1,24 +1,22 @@
-import "dotenv/config";
-import {
+require("dotenv").config();
+const {
   Client,
   GatewayIntentBits,
-  REST,
-  Routes,
   SlashCommandBuilder,
+  EmbedBuilder,
   PermissionFlagsBits,
-  EmbedBuilder
-} from "discord.js";
+  REST,
+  Routes
+} = require("discord.js");
 
-/* =========================
-   CLIENT
-========================= */
+/* ───────────── Client ───────────── */
+
 const client = new Client({
   intents: [GatewayIntentBits.Guilds]
 });
 
-/* =========================
-   SLASH COMMANDS
-========================= */
+/* ───────────── Slash Commands ───────────── */
+
 const commands = [
   new SlashCommandBuilder()
     .setName("infoboard")
@@ -30,7 +28,7 @@ const commands = [
     .addStringOption(option =>
       option
         .setName("message")
-        .setDescription("Message to send")
+        .setDescription("Message to send (multi-line supported)")
         .setRequired(true)
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
@@ -41,15 +39,14 @@ const commands = [
     .addStringOption(option =>
       option
         .setName("message")
-        .setDescription("Embed content (multi-line supported)")
+        .setDescription("Embed message (multi-line + animated emojis supported)")
         .setRequired(true)
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
 ].map(cmd => cmd.toJSON());
 
-/* =========================
-   REGISTER COMMANDS
-========================= */
+/* ───────────── Register Commands ───────────── */
+
 const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
 
 (async () => {
@@ -64,39 +61,33 @@ const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
     );
     console.log("✅ Slash commands registered!");
   } catch (err) {
-    console.error(err);
+    console.error("❌ Command registration failed:", err);
   }
 })();
 
-/* =========================
-   READY
-========================= */
+/* ───────────── Ready ───────────── */
+
 client.once("ready", () => {
   console.log(`🤖 Logged in as ${client.user.tag}`);
 });
 
-/* =========================
-   INTERACTIONS
-========================= */
+/* ───────────── Interactions ───────────── */
+
 client.on("interactionCreate", async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
-  /* -------- /infoboard -------- */
+  /* ── /infoboard ── */
   if (interaction.commandName === "infoboard") {
     const embed = new EmbedBuilder()
-      .setColor(0xE53935)
-      .setTitle("📢 StromMC Information Board")
+      .setColor(0x2b2d31)
+      .setTitle("🌩️ StromMC Information Board")
       .setDescription(
         "✨ **Welcome to StromMC!** ✨\n\n" +
         "🔥 **Premium SMP Experience**\n" +
         "💎 Custom Features\n" +
         "⭐ Active Community\n\n" +
-        "🎮 **Available Modes**\n" +
-        "🟢 Survival\n" +
-        "⚔️ Bedwars\n" +
-        "💀 Lifesteal\n" +
-        "🕹️ Arcade\n" +
-        "🌌 Custom Realms (Coming Soon)\n\n" +
+        "🌐 **Server IP:** _Coming Soon_\n" +
+        "🔌 **Port:** _Coming Soon_\n\n" +
         "🚀 Stay tuned for updates!"
       )
       .setFooter({ text: "Official StromMC Network" })
@@ -105,44 +96,44 @@ client.on("interactionCreate", async interaction => {
     await interaction.reply({ embeds: [embed] });
   }
 
-  /* -------- /say -------- */
+  /* ── /say ── */
   if (interaction.commandName === "say") {
     const message = interaction.options.getString("message");
 
-    await interaction.channel.send({
-      content: message,
-      allowedMentions: { parse: [] }
-    });
+    // ✅ Send message EXACTLY as typed (keeps new lines)
+    await interaction.channel.send({ content: message });
 
     await interaction.reply({
-      content: "✅ Message sent.",
+      content: "✅ Message sent successfully.",
       ephemeral: true
     });
   }
 
-  /* -------- /sayembed -------- */
+  /* ── /sayembed ── */
   if (interaction.commandName === "sayembed") {
     const message = interaction.options.getString("message");
 
+    // 🚨 CRITICAL FIX:
+    // Do NOT modify message at all
+    // This preserves:
+    // ✔ line breaks
+    // ✔ animated emojis
+    // ✔ formatting
     const embed = new EmbedBuilder()
-      .setColor(0xE53935)
-      .setDescription(message) // IMPORTANT: untouched text
+      .setColor(0x2b2d31)
+      .setDescription(message)
       .setFooter({ text: "Official StromMC Network" })
       .setTimestamp();
-
-    await interaction.channel.send({
-      embeds: [embed],
-      allowedMentions: { parse: [] }
-    });
 
     await interaction.reply({
       content: "✅ Embed sent successfully.",
       ephemeral: true
     });
+
+    await interaction.channel.send({ embeds: [embed] });
   }
 });
 
-/* =========================
-   LOGIN
-========================= */
+/* ───────────── Login ───────────── */
+
 client.login(process.env.TOKEN);
