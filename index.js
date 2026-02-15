@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import "dotenv/config";
 import {
   Client,
   GatewayIntentBits,
@@ -7,8 +7,11 @@ import {
   SlashCommandBuilder,
   PermissionFlagsBits,
   EmbedBuilder
-} from 'discord.js';
+} from "discord.js";
 
+/* =========================
+   CLIENT SETUP
+========================= */
 const client = new Client({
   intents: [GatewayIntentBits.Guilds]
 });
@@ -29,7 +32,7 @@ const commands = [
     .addStringOption(option =>
       option
         .setName("message")
-        .setDescription("Message to send")
+        .setDescription("Message to send (supports line breaks)")
         .setRequired(true)
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
@@ -37,7 +40,7 @@ const commands = [
   // /sayembed (admin only)
   new SlashCommandBuilder()
     .setName("sayembed")
-    .setDescription("Send an embed message like Dyno (Admin only)")
+    .setDescription("Send a premium embed message (Admin only)")
     .addStringOption(option =>
       option
         .setName("title")
@@ -75,7 +78,7 @@ const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
 })();
 
 /* =========================
-   BOT READY
+   READY EVENT
 ========================= */
 client.once("ready", () => {
   console.log(`🤖 Logged in as ${client.user.tag}`);
@@ -90,20 +93,33 @@ client.on("interactionCreate", async interaction => {
   /* -------- /infoboard -------- */
   if (interaction.commandName === "infoboard") {
     const embed = new EmbedBuilder()
-      .setColor(0x00ffff)
-      .setTitle("🌩️ StromMC Network")
+      .setColor(0xff2b2b)
+      .setTitle("📢 StromMC Information Board")
       .setDescription(
-        "**Server IP:** _Coming Soon_\n" +
-        "**Port:** _Coming Soon_\n\n" +
-        "🎮 **Available Modes**\n" +
+        "✨ **Welcome to StromMC Network!** ✨\n\n" +
+
+        "━━━━━━━━━━━━━━━━━━\n" +
+        "🔥 **Premium Minecraft Experience**\n" +
+        "💎 Custom & Unique Features\n" +
+        "⭐ Active Community\n\n" +
+
+        "━━━━━━━━━━━━━━━━━━\n" +
+        "🎮 **Available Game Modes**\n" +
         "🟢 Survival\n" +
         "⚔️ Bedwars\n" +
         "💀 Lifesteal\n" +
         "🕹️ Arcade\n" +
-        "🌌 Custom Realms (3+)\n\n" +
-        "🚀 High performance • Custom gameplay • Big updates coming soon!"
+        "🌌 Custom Realms (2–3+)\n\n" +
+
+        "━━━━━━━━━━━━━━━━━━\n" +
+        "🌐 **Server Information**\n" +
+        "🖥️ **IP:** _Coming Soon_\n" +
+        "🔌 **Port:** _Coming Soon_\n\n" +
+
+        "🚀 Stay tuned for updates & big reveals!"
       )
-      .setFooter({ text: "Official StromMC Network • StromMC" });
+      .setFooter({ text: "Official StromMC Network" })
+      .setTimestamp();
 
     await interaction.reply({ embeds: [embed] });
   }
@@ -112,7 +128,10 @@ client.on("interactionCreate", async interaction => {
   if (interaction.commandName === "say") {
     const message = interaction.options.getString("message");
     await interaction.channel.send(message);
-    await interaction.reply({ content: "✅ Message sent.", ephemeral: true });
+    await interaction.reply({
+      content: "✅ Message sent successfully.",
+      ephemeral: true
+    });
   }
 
   /* -------- /sayembed -------- */
@@ -123,13 +142,17 @@ client.on("interactionCreate", async interaction => {
       .replace(/\\n/g, "\n");
 
     const embed = new EmbedBuilder()
-      .setColor(0xff0000)
+      .setColor(0xff2b2b)
       .setTitle(title)
       .setDescription(description)
-      .setFooter({ text: "Official StromMC Network" });
+      .setFooter({ text: "Official StromMC Network" })
+      .setTimestamp();
 
     await interaction.channel.send({ embeds: [embed] });
-    await interaction.reply({ content: "✅ Embed sent.", ephemeral: true });
+    await interaction.reply({
+      content: "✅ Embed sent successfully.",
+      ephemeral: true
+    });
   }
 });
 
