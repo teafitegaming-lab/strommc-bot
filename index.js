@@ -1,13 +1,14 @@
-require("dotenv").config();
-const {
+import "dotenv/config";
+import {
   Client,
   GatewayIntentBits,
   SlashCommandBuilder,
   EmbedBuilder,
   PermissionFlagsBits,
   REST,
-  Routes
-} = require("discord.js");
+  Routes,
+  InteractionResponseFlags
+} from "discord.js";
 
 /* ───────────── Client ───────────── */
 
@@ -100,12 +101,12 @@ client.on("interactionCreate", async interaction => {
   if (interaction.commandName === "say") {
     const message = interaction.options.getString("message");
 
-    // ✅ Send message EXACTLY as typed (keeps new lines)
+    // ✔ preserves line breaks exactly
     await interaction.channel.send({ content: message });
 
     await interaction.reply({
       content: "✅ Message sent successfully.",
-      ephemeral: true
+      flags: InteractionResponseFlags.Ephemeral
     });
   }
 
@@ -113,12 +114,7 @@ client.on("interactionCreate", async interaction => {
   if (interaction.commandName === "sayembed") {
     const message = interaction.options.getString("message");
 
-    // 🚨 CRITICAL FIX:
-    // Do NOT modify message at all
-    // This preserves:
-    // ✔ line breaks
-    // ✔ animated emojis
-    // ✔ formatting
+    // 🚨 DO NOT TOUCH MESSAGE → fixes line mixing & emoji issues
     const embed = new EmbedBuilder()
       .setColor(0x2b2d31)
       .setDescription(message)
@@ -127,7 +123,7 @@ client.on("interactionCreate", async interaction => {
 
     await interaction.reply({
       content: "✅ Embed sent successfully.",
-      ephemeral: true
+      flags: InteractionResponseFlags.Ephemeral
     });
 
     await interaction.channel.send({ embeds: [embed] });
